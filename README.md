@@ -1,15 +1,21 @@
 # native_file_explorer_launcher
 
-A new flutter plugin project.
+A flutter plugin to launch the native file explorer/a file or get a list of supported applications for a desired file.
 
-## Getting Started
+|  Supported Platforms |            |
+|---------|------------|
+| Windows | ✅          |
+| macOS   | ✅          |
 
-This project is a starting point for a Flutter
-[plug-in package](https://flutter.dev/developing-packages/),
-a specialized package that includes platform-specific implementation code for
-Android and/or iOS.
 
-For help getting started with Flutter, view our
-[online documentation](https://flutter.dev/docs), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+## Usage
 
+To use this plugin, add `native_file_explorer_launcher` as a dependency in your pubspec.yaml file.
+
+```
+// launches the native file explorer, i.e. `Finder`for macOS and `Explorer` for Windows and selects the file
+bool isSuccessful = await NativeFileExplorerLauncher.showFileInNativeFileExplorer(filePath)
+
+// launches the file using the default application
+bool isSuccessful = await NativeFileExplorerLauncher.launchFile(filePath)
+```
