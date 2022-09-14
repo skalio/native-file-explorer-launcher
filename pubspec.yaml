@@ -1,6 +1,6 @@
 name: native_file_explorer_launcher
 description: A flutter plugin to launch the native file explorer/a file or get a list of supported applications for a desired file.
-version: 1.0.0
+version: 1.1.0
 homepage: https://github.com/skalio/native-file-explorer-launcher
 
 environment:

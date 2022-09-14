@@ -49,6 +49,14 @@ class NativeFileExplorerLauncher {
     return result;
   }
 
+  /// Get a list of supported applications which can open the file decribed by [filePath] 
+  /// 
+  /// Make sure to pass the absolute path of the file.
+  /// Might throw [PlatformException] when the file extension is not included in the [filePath].
+  ///
+  /// Returns a list of [AppMetadata] objects, which includes the name, url and icon data of every application.
+  ///
+  /// Currently it only supports two platforms, namely, macos and windows.
   static Future<List<AppMetadata>?> getSupportedApplications(String filePath) async {
     List<AppMetadata>? apps;
     try {
@@ -77,6 +85,13 @@ class NativeFileExplorerLauncher {
     return apps;
   }
 
+  /// Launches the local desktop file, decribed by [filePath] which is passed as an argument,
+  /// using the application in [applicationPath]
+  ///
+  /// Make sure to pass the absolute path of the file and application.
+  /// Might throw [PlatformException] when the file extension is not included in the [filePath].
+  /// 
+  /// Currently it only supports two platforms, namely, macos and windows.
   static void launchFileWith(String filePath, String applicationPath) async {
     await _channel.invokeMethod(
         "launchFileWith", <String, Object>{'filePath': filePath.trim(), 'applicationPath': applicationPath.trim()});

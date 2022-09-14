@@ -94,10 +94,7 @@ private func getSupportedApplications(_ fileURL: URL, result: @escaping FlutterR
 private func launchFileWith(_ fileURL: URL, applicationURL: URL, result: @escaping FlutterResult) {
     if #available(macOS 10.15, *) {
         NSWorkspace.shared.open([fileURL], withApplicationAt: applicationURL, configuration: NSWorkspace.OpenConfiguration())
-        
-    } else {
     }
-    
     result(nil)
 }
 
