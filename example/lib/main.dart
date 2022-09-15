@@ -88,7 +88,7 @@ class _MyAppState extends State<MyApp> {
                       ),
                       onPressed: () async {
                         if (_filePathFormKey.currentState.validate()) {
-                          if (!await NativeFileExplorerLauncher.launchFile(_filePathController.text)) {
+                          if (!await NativeFileExplorerLauncher.launchFile(filePath: _filePathController.text)) {
                             throw 'Could not launch ${_filePathController.text}';
                           }
                         }
@@ -99,7 +99,7 @@ class _MyAppState extends State<MyApp> {
                     ),
                     ElevatedButton(
                         key: _openWithButtonKey,
-                        onPressed: () {
+                        onPressed: () async {
                           if (_filePathFormKey.currentState.validate()) {
                             _showPopupMenu();
                           }
@@ -125,13 +125,18 @@ class _MyAppState extends State<MyApp> {
     double bottom = screenSize.height - position.dy;
 
     final apps = await NativeFileExplorerLauncher.getSupportedApplications(_filePathController.text);
-    final items = apps
-        .map((e) => PopupMenuItem<AppMetadata>(
-            onTap: () => NativeFileExplorerLauncher.launchFileWith(_filePathController.text, e.url),
-            child: Column(children: [Image.memory(e.icon, width: 20, height: 20), SizedBox(width: 50), Text(e.name)]),
-            value: e))
-        .toList();
+    if (apps != null) {
+      final items = apps
+          .map((e) => PopupMenuItem<AppMetadata>(
+              onTap: () =>
+                  NativeFileExplorerLauncher.launchFile(filePath: _filePathController.text, applicationPath: e.url),
+              child: Row(children: [Image.memory(e.icon, width: 30, height: 30), SizedBox(width: 10), Text(e.name)]),
+              value: e))
+          .toList();
 
-    await showMenu(context: context, position: RelativeRect.fromLTRB(left, top, right, bottom), items: items);
+      await showMenu(context: context, position: RelativeRect.fromLTRB(left, top, right, bottom), items: items);
+    } else {
+      throw 'No application found which can launch ${_filePathController.text}';
+    }
   }
 }

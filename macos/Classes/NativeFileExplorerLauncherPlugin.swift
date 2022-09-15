@@ -24,11 +24,7 @@ public class NativeFileExplorerLauncherPlugin: NSObject, FlutterPlugin {
       case "showFileInNativeFileExplorer":
           showFileInNativeFileExplorer(fileURL, result: result)
       case "launchFile":
-          launchFile(fileURL, result: result)
-      case "launchFileWith":
-          if let applicationPath = applicationPath, let applicationURL = URL(string: applicationPath) {
-              launchFileWith(fileURL, applicationURL: applicationURL, result: result)
-          }
+          launchFile(fileURL, applicationURL: applicationPath != nil ? URL(string: applicationPath!) : nil,  result: result)
       case "getSupportedApplications":
           getSupportedApplications(fileURL, result: result)
       default:
@@ -41,7 +37,7 @@ private func showFileInNativeFileExplorer(_ fileURL: URL, result: @escaping Flut
     result(NSWorkspace.shared.selectFile(fileURL.path , inFileViewerRootedAtPath: ""))
 }
 
-private func launchFile(_ fileURL: URL, result: @escaping FlutterResult) {
+private func launchFile(_ fileURL: URL, applicationURL: URL? = nil, result: @escaping FlutterResult) {
     //TODO figure out a way to preselct directory in order to make it a user-selected directory so as to have acces to it
     // let savePanel = NSOpenPanel()
     // let launcherLogPathWithTilde = "~/Users/apoorv/learning_course" as NSString
@@ -49,6 +45,36 @@ private func launchFile(_ fileURL: URL, result: @escaping FlutterResult) {
     // savePanel.directoryURL = NSURL.fileURL(withPath: expandedLauncherLogPath, isDirectory: true)
     // savePanel.directoryURL = FileManager.homeDirectoryForCurrentUser
     // savePanel.directoryURL = URL(fileURLWithPath: NSHomeDirectory())
+    if let applicationURL = applicationURL {
+        if #available(macOS 10.15, *) {
+            NSWorkspace.shared.open([fileURL], withApplicationAt: applicationURL, configuration: NSWorkspace.OpenConfiguration()) { _, err in
+                if let err = err {
+                    result(FlutterError(code: "argument_error", message: err.localizedDescription, details: nil))
+                    return
+                }
+                result(true)
+            }
+        } else {
+            // fallback for earlier macOS versions
+            let fileCFArray = [fileURL] as CFArray
+            let unmanagedFileCFArray = Unmanaged<CFArray>.passUnretained(fileCFArray)
+            let appCFURL = applicationURL as CFURL
+            let unmanagedAppURL = Unmanaged<CFURL>.passUnretained(appCFURL)
+            var launchURLSpec = LSLaunchURLSpec(appURL: unmanagedAppURL, itemURLs: unmanagedFileCFArray, passThruParams: nil, launchFlags: .defaults, asyncRefCon: nil)
+            
+            var outLaunchedURL: UnsafeMutablePointer<Unmanaged<CFURL>?>?
+            LSOpenFromURLSpec(&launchURLSpec, outLaunchedURL)
+            
+            if let _ = outLaunchedURL {
+                result(false)
+                return
+            }
+            result(true)
+        }
+        
+        return
+    }
+    
     result(NSWorkspace.shared.open(fileURL))
 }
 
@@ -60,7 +86,6 @@ private func launchFile(_ fileURL: URL, result: @escaping FlutterResult) {
 ///     "url": String
 ///     "icon": Data
 /// }
-///
 private func getSupportedApplications(_ fileURL: URL, result: @escaping FlutterResult) {
     let fileCFURL = fileURL as CFURL
     guard let list = LSCopyApplicationURLsForURL(fileCFURL, LSRolesMask.all)?.takeRetainedValue() else {
@@ -89,13 +114,6 @@ private func getSupportedApplications(_ fileURL: URL, result: @escaping FlutterR
     }
     
     result(apps)
-}
-
-private func launchFileWith(_ fileURL: URL, applicationURL: URL, result: @escaping FlutterResult) {
-    if #available(macOS 10.15, *) {
-        NSWorkspace.shared.open([fileURL], withApplicationAt: applicationURL, configuration: NSWorkspace.OpenConfiguration())
-    }
-    result(nil)
 }
 
 /// Returns an error for the case where, provided, filePath string can't be parsed as a URL.
