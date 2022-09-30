@@ -19,9 +19,9 @@ bool isSuccessful = await NativeFileExplorerLauncher.showFileInNativeFileExplore
 // launches the file using the default application
 bool isSuccessful = await NativeFileExplorerLauncher.launchFile(filePath)
 
-// launches the file using the passed application
-bool isSuccessful = await NativeFileExplorerLauncher.launchFile(filePath, applicationPath)
+// launches the file using the passed application handler
+bool isSuccessful = await NativeFileExplorerLauncher.launchFile(filePath, applicationHandler)
 
-// get a list of supported applications for the desired file, including the name, url and the icon data of every application. NULL if no application can open the file
-List<AppMetadata> =  await NativeFileExplorerLauncher.getSupportedApplications(String filePath)
+// get a list of supported applications for the desired file, including the name, url and the icon data of every application. If no application is found, it returns an empty list
+List<AppHandler> =  await NativeFileExplorerLauncher.getSupportedApplications(String filePath)
 ```
