@@ -1,7 +1,6 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
-import 'package:native_file_explorer_launcher/app_metadata.dart';
 import 'package:native_file_explorer_launcher/native_file_explorer_launcher.dart';
 
 void main() {
@@ -68,12 +67,15 @@ class _MyAppState extends State<MyApp> {
                   children: [
                     ElevatedButton(
                       child: Text(
-                        Platform.isMacOS ? "Show file in Finder" : "Show file in File Explorer",
+                        Platform.isMacOS
+                            ? "Show file in Finder"
+                            : "Show file in File Explorer",
                       ),
                       onPressed: () async {
                         if (_filePathFormKey.currentState.validate()) {
-                          if (!await NativeFileExplorerLauncher.showFileInNativeFileExplorer(
-                              _filePathController.text)) {
+                          if (!await NativeFileExplorerLauncher
+                              .showFileInNativeFileExplorer(
+                                  _filePathController.text)) {
                             throw 'Could not open ${_filePathController.text}';
                           }
                         }
@@ -88,7 +90,8 @@ class _MyAppState extends State<MyApp> {
                       ),
                       onPressed: () async {
                         if (_filePathFormKey.currentState.validate()) {
-                          if (!await NativeFileExplorerLauncher.launchFile(filePath: _filePathController.text)) {
+                          if (!await NativeFileExplorerLauncher.launchFile(
+                              filePath: _filePathController.text)) {
                             throw 'Could not launch ${_filePathController.text}';
                           }
                         }
@@ -117,24 +120,35 @@ class _MyAppState extends State<MyApp> {
 
   void _showPopupMenu() async {
     final screenSize = MediaQuery.of(context).size;
-    RenderBox box = _openWithButtonKey.currentContext.findRenderObject() as RenderBox;
+    RenderBox box =
+        _openWithButtonKey.currentContext.findRenderObject() as RenderBox;
     Offset position = box.localToGlobal(Offset.zero);
     double left = position.dx;
     double top = position.dy;
     double right = screenSize.width - position.dx - box.size.width;
     double bottom = screenSize.height - position.dy;
 
-    final apps = await NativeFileExplorerLauncher.getSupportedApplications(_filePathController.text);
-    if (apps != null) {
+    final apps = await NativeFileExplorerLauncher.getSupportedApplications(
+        _filePathController.text);
+    if (apps.isNotEmpty) {
       final items = apps
-          .map((e) => PopupMenuItem<AppMetadata>(
-              onTap: () =>
-                  NativeFileExplorerLauncher.launchFile(filePath: _filePathController.text, applicationPath: e.url),
-              child: Row(children: [Image.memory(e.icon, width: 30, height: 30), SizedBox(width: 10), Text(e.name)]),
+          .map((e) => PopupMenuItem<AppHandler>(
+              onTap: () => NativeFileExplorerLauncher.launchFile(
+                  filePath: _filePathController.text, applicationHandler: e),
+              child: Row(children: [
+                e.icon != null
+                    ? Image.memory(e.icon, width: 30, height: 30)
+                    : SizedBox(),
+                SizedBox(width: 10),
+                Text(e.name)
+              ]),
               value: e))
           .toList();
 
-      await showMenu(context: context, position: RelativeRect.fromLTRB(left, top, right, bottom), items: items);
+      await showMenu(
+          context: context,
+          position: RelativeRect.fromLTRB(left, top, right, bottom),
+          items: items);
     } else {
       throw 'No application found which can launch ${_filePathController.text}';
     }

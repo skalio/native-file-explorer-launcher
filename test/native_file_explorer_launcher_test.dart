@@ -1,6 +1,5 @@
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:native_file_explorer_launcher/native_file_explorer_launcher.dart';
 
 void main() {
   const MethodChannel channel = MethodChannel('native_file_explorer_launcher');
