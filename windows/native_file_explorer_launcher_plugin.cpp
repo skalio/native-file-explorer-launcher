@@ -50,7 +50,7 @@ namespace {
 
   // Returns the filePath argument from |method_call| if it is present, otherwise
   // returns an empty string.
-  std::string GetfilePathArgument(const flutter::MethodCall<> &method_call) {
+  std::string GetFilePathArgument(const flutter::MethodCall<> &method_call) {
     std::string filePath;
     const auto *arguments = std::get_if<EncodableMap>(method_call.arguments());
     if (arguments) {
@@ -110,7 +110,7 @@ namespace {
   std::vector<IAssocHandler*> tempAssocHandler;
 
   void NativeFileExplorerLauncherPlugin::HandleMethodCall(const flutter::MethodCall<flutter::EncodableValue> &method_call, std::unique_ptr<flutter::MethodResult<flutter::EncodableValue>> result) {
-    std::string filePath = GetfilePathArgument(method_call);
+    std::string filePath = GetFilePathArgument(method_call);
     if (filePath.empty()) {
       result->Error("argument_error", "No URL provided");
       return;

@@ -2,10 +2,9 @@ import 'dart:async';
 import 'package:flutter/services.dart';
 import 'package:native_file_explorer_launcher/native_file_explorer_launcher.dart';
 
-/// Communication channel between the Dart- and native-layer
 class NativeFileExplorerLauncher {
-  static const MethodChannel _channel =
-      const MethodChannel('native_file_explorer_launcher');
+  /// Communication channel between the Dart- and native-layer
+  static const MethodChannel _channel = const MethodChannel('native_file_explorer_launcher');
 
   /// Launches the native desktop file explorer, i.e, 'Finder' for macOS and 'Explorer' for Windows,
   /// and shows the local desktop file, decribed by [filePath] which is passed as an argument,
@@ -67,7 +66,7 @@ class NativeFileExplorerLauncher {
   ///
   /// [filePath] is the absolute path of the file
   ///
-  /// Returns a list of [AppHandler] objects, which includes the name, url and icon data of every application. If no application is found, it returns an empty list.
+  /// Returns a list of [AppHandler] objects containing metadata of every supported application. If no application is found, it returns an empty list.
   ///
   /// Currently it only supports two platforms, namely, macOS and Windows.
   static Future<List<AppHandler>?> getSupportedApplications(
@@ -89,7 +88,7 @@ class NativeFileExplorerLauncher {
           final name = map["name"] as String;
           final url = map["url"] as String;
           final icon = map["icon"] as Uint8List?;
-          apps.add(AppHandler(name, url, icon: icon));
+          apps.add(AppHandler(name: name, url: url, icon: icon));
         });
       }
     } on PlatformException catch (platformError) {
