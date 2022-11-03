@@ -2,6 +2,7 @@ import Cocoa
 import FlutterMacOS
 import Foundation
 import CoreServices
+import UniformTypeIdentifiers
 
 public class NativeFileExplorerLauncherPlugin: NSObject, FlutterPlugin {
   public static func register(with registrar: FlutterPluginRegistrar) {
@@ -87,14 +88,38 @@ private func launchFile(_ fileURL: URL, applicationURL: URL? = nil, result: @esc
 ///     "icon": Data
 /// }
 private func getSupportedApplications(_ fileURL: URL, result: @escaping FlutterResult) {
-    let fileCFURL = fileURL as CFURL
-    guard let list = LSCopyApplicationURLsForURL(fileCFURL, LSRolesMask.all)?.takeRetainedValue() else {
+    let fileExtension = fileURL.pathExtension
+    if fileExtension.isEmpty {
+        result(nil)
+        return
+    }
+    
+    var uniformIdentifier: String
+    if #available(macOS 11.0, *) {
+        guard let uti = UTTypeReference(filenameExtension: fileExtension) else {
+            result(nil)
+            return
+        }
+        uniformIdentifier = uti.identifier
+    } else {
+        guard let uti = UTTypeCreatePreferredIdentifierForTag(kUTTagClassFilenameExtension, fileExtension as CFString, nil) else {
+            result(nil)
+            return
+        }
+        uniformIdentifier = uti.takeRetainedValue() as String
+    }
+    
+    guard let list = LSCopyAllRoleHandlersForContentType(uniformIdentifier as CFString, .all)?.takeRetainedValue() as? Array<String> else {
         result(nil)
         return
     }
     
     var apps: [[String: Any]] = []
-    for url in list as! [URL] {
+    for bundleId in list {
+        guard let url = NSWorkspace.shared.urlForApplication(withBundleIdentifier: bundleId) else {
+            continue
+        }
+        
         let icon = NSWorkspace.shared.icon(forFile: url.path)
         guard let bundle = Bundle(url: url), let icon = icon.png else {
             continue
