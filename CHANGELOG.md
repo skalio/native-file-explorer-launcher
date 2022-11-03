@@ -1,3 +1,7 @@
+# 1.2.1
+
+* use file extension instead file path to get supported applications on macOS
+
 # 1.2.0
 
 * **Breaking change:** `AppMetadata` is renamed to `AppHandler`.
