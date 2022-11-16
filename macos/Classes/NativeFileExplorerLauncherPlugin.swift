@@ -88,57 +88,59 @@ private func launchFile(_ fileURL: URL, applicationURL: URL? = nil, result: @esc
 ///     "icon": Data
 /// }
 private func getSupportedApplications(_ fileURL: URL, result: @escaping FlutterResult) {
-    let fileExtension = fileURL.pathExtension
-    if fileExtension.isEmpty {
-        result(nil)
-        return
-    }
-    
-    var uniformIdentifier: String
-    if #available(macOS 11.0, *) {
-        guard let uti = UTTypeReference(filenameExtension: fileExtension) else {
+    DispatchQueue.global(qos: .userInteractive).async {
+        let fileExtension = fileURL.pathExtension
+        if fileExtension.isEmpty {
             result(nil)
             return
         }
-        uniformIdentifier = uti.identifier
-    } else {
-        guard let uti = UTTypeCreatePreferredIdentifierForTag(kUTTagClassFilenameExtension, fileExtension as CFString, nil) else {
+        
+        var uniformIdentifier: String
+        if #available(macOS 11.0, *) {
+            guard let uti = UTTypeReference(filenameExtension: fileExtension) else {
+                result(nil)
+                return
+            }
+            uniformIdentifier = uti.identifier
+        } else {
+            guard let uti = UTTypeCreatePreferredIdentifierForTag(kUTTagClassFilenameExtension, fileExtension as CFString, nil) else {
+                result(nil)
+                return
+            }
+            uniformIdentifier = uti.takeRetainedValue() as String
+        }
+        
+        guard let list = LSCopyAllRoleHandlersForContentType(uniformIdentifier as CFString, .all)?.takeRetainedValue() as? Array<String> else {
             result(nil)
             return
         }
-        uniformIdentifier = uti.takeRetainedValue() as String
-    }
-    
-    guard let list = LSCopyAllRoleHandlersForContentType(uniformIdentifier as CFString, .all)?.takeRetainedValue() as? Array<String> else {
-        result(nil)
-        return
-    }
-    
-    var apps: [[String: Any]] = []
-    for bundleId in list {
-        guard let url = NSWorkspace.shared.urlForApplication(withBundleIdentifier: bundleId) else {
-            continue
+        
+        var apps: [[String: Any]] = []
+        for bundleId in list {
+            guard let url = NSWorkspace.shared.urlForApplication(withBundleIdentifier: bundleId) else {
+                continue
+            }
+            
+            let icon = NSWorkspace.shared.icon(forFile: url.path)
+            guard let bundle = Bundle(url: url), let icon = icon.png else {
+                continue
+            }
+            
+            var applicationName = url.lastPathComponent
+            let bundleDisplayName = bundle.object(forInfoDictionaryKey: "CFBundleDisplayName") as? String
+            let bundleName = bundle.object(forInfoDictionaryKey: "CFBundleName") as? String
+            if let bundleDisplayName = bundleDisplayName {
+                applicationName = bundleDisplayName
+            } else if let bundleName = bundleName {
+                applicationName = bundleName
+            }
+            
+            let thisApp: [String : Any] = ["name": applicationName, "url": url.absoluteString, "icon": icon]
+            apps.append(thisApp)
         }
         
-        let icon = NSWorkspace.shared.icon(forFile: url.path)
-        guard let bundle = Bundle(url: url), let icon = icon.png else {
-            continue
-        }
-        
-        var applicationName = url.lastPathComponent
-        let bundleDisplayName = bundle.object(forInfoDictionaryKey: "CFBundleDisplayName") as? String
-        let bundleName = bundle.object(forInfoDictionaryKey: "CFBundleName") as? String
-        if let bundleDisplayName = bundleDisplayName {
-            applicationName = bundleDisplayName
-        } else if let bundleName = bundleName {
-            applicationName = bundleName
-        }
-        
-        let thisApp: [String : Any] = ["name": applicationName, "url": url.absoluteString, "icon": icon]
-        apps.append(thisApp)
+        result(apps)
     }
-    
-    result(apps)
 }
 
 /// Returns an error for the case where, provided, filePath string can't be parsed as a URL.

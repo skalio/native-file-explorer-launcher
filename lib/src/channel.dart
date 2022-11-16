@@ -74,7 +74,7 @@ class NativeFileExplorerLauncher {
     List<AppHandler> apps = [];
     try {
       var list = await _channel.invokeMethod("getSupportedApplications",
-          <String, Object>{'filePath': filePath.trim()}) as List<Object>?;
+          <String, Object>{'filePath': filePath.trim()}) as List<Object?>;
       if (list != null) {
         List<Map<dynamic, dynamic>> mapList =
             list.map((e) => e as Map<dynamic, dynamic>).toList();
