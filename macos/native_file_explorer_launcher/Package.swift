@@ -1,12 +1,11 @@
 // swift-tools-version: 5.9
-// The swift-tools-version declares the minimum version of Swift required to build this package.
 
 import PackageDescription
 
 let package = Package(
     name: "native_file_explorer_launcher",
     platforms: [
-        .macOS("10.15")
+        .macOS("12.0")
     ],
     products: [
         .library(name: "native-file-explorer-launcher", targets: ["native_file_explorer_launcher"])
