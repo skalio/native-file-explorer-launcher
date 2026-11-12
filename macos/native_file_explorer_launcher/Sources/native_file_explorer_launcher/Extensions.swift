@@ -5,7 +5,7 @@
 //  Created by Leon Hoppe on 08.09.22.
 //
 
-import Foundation
+import AppKit
 
 extension NSBitmapImageRep {
     var png: Data? { representation(using: .png, properties: [:]) }

@@ -72,7 +72,7 @@ class _MyAppState extends State<MyApp> {
                             : "Show file in File Explorer",
                       ),
                       onPressed: () async {
-                        if (_filePathFormKey.currentState.validate()) {
+                        if (_filePathFormKey.currentState!.validate()) {
                           if (!await NativeFileExplorerLauncher
                               .showFileInNativeFileExplorer(
                                   _filePathController.text)) {
@@ -89,7 +89,7 @@ class _MyAppState extends State<MyApp> {
                         "Launch file",
                       ),
                       onPressed: () async {
-                        if (_filePathFormKey.currentState.validate()) {
+                        if (_filePathFormKey.currentState!.validate()) {
                           if (!await NativeFileExplorerLauncher.launchFile(
                               filePath: _filePathController.text)) {
                             throw 'Could not launch ${_filePathController.text}';
@@ -103,7 +103,7 @@ class _MyAppState extends State<MyApp> {
                     ElevatedButton(
                         key: _openWithButtonKey,
                         onPressed: () async {
-                          if (_filePathFormKey.currentState.validate()) {
+                          if (_filePathFormKey.currentState!.validate()) {
                             _showPopupMenu();
                           }
                         },
@@ -121,7 +121,7 @@ class _MyAppState extends State<MyApp> {
   void _showPopupMenu() async {
     final screenSize = MediaQuery.of(context).size;
     RenderBox box =
-        _openWithButtonKey.currentContext.findRenderObject() as RenderBox;
+        _openWithButtonKey.currentContext!.findRenderObject() as RenderBox;
     Offset position = box.localToGlobal(Offset.zero);
     double left = position.dx;
     double top = position.dy;
@@ -130,14 +130,14 @@ class _MyAppState extends State<MyApp> {
 
     final apps = await NativeFileExplorerLauncher.getSupportedApplications(
         _filePathController.text);
-    if (apps.isNotEmpty) {
+    if (apps != null && apps.isNotEmpty) {
       final items = apps
           .map((e) => PopupMenuItem<AppHandler>(
               onTap: () => NativeFileExplorerLauncher.launchFile(
                   filePath: _filePathController.text, applicationHandler: e),
               child: Row(children: [
                 e.icon != null
-                    ? Image.memory(e.icon, width: 30, height: 30)
+                    ? Image.memory(e.icon!, width: 30, height: 30)
                     : SizedBox(),
                 SizedBox(width: 10),
                 Text(e.name)
