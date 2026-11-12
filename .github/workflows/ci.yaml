@@ -15,6 +15,7 @@ jobs:
     name: Dart (Flutter ${{ matrix.flutter }})
     runs-on: ubuntu-latest
     strategy:
+      fail-fast: false
       matrix:
         # The lowest version pubspec.yaml allows, and the current one.
         flutter: ["3.41.0", "stable"]
@@ -25,6 +26,11 @@ jobs:
           flutter-version: ${{ matrix.flutter != 'stable' && matrix.flutter || '' }}
           channel: stable
           cache: true
+      # Pigeon only generates code and needs a newer Flutter than the
+      # plugin itself, so the oldest-Flutter run goes without it.
+      - name: Drop pigeon
+        if: matrix.flutter != 'stable'
+        run: sed -i '/^  pigeon:/d' pubspec.yaml
       - run: flutter pub get --no-example
       - run: flutter analyze lib test
       - run: flutter test --coverage
