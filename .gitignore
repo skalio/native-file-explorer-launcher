@@ -33,6 +33,10 @@ desktop.ini
 /build/
 pubspec.lock
 
+# Swift Package Manager related
+.build/
+.swiftpm/
+
 # macOS related
 macos/Flutter/GeneratedPluginRegistrant.swift
 macos/Podfile.lock
