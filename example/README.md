@@ -1,16 +1,14 @@
-# native_file_explorer_launcher_example
+# native_file_explorer_launcher example
 
-Demonstrates how to use the native_file_explorer_launcher plugin.
+Pick a file, then show it in Finder or Explorer, open it, or open it with
+one of the apps the system suggests.
 
-## Getting Started
+```bash
+flutter run -d macos   # or -d windows
+```
 
-This project is a starting point for a Flutter application.
+The integration tests in `integration_test/` call the real platform side:
 
-A few resources to get you started if this is your first Flutter project:
-
-- [Lab: Write your first Flutter app](https://flutter.dev/docs/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://flutter.dev/docs/cookbook)
-
-For help getting started with Flutter, view our
-[online documentation](https://flutter.dev/docs), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+```bash
+flutter test integration_test -d macos
+```

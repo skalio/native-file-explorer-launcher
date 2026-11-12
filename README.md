@@ -1,27 +1,152 @@
 # native_file_explorer_launcher
 
-A flutter plugin to launch the native file explorer/a file or get a list of supported applications for a desired file.
+Your Flutter desktop app just downloaded a file. Now the user wants to see
+it. This plugin does the three things desktop apps do at that point:
 
-|  Supported Platforms |            |
-|---------|------------|
-| Windows | ✅          |
-| macOS   | ✅          |
+- **Show** the file in Finder or File Explorer, selected.
+- **Open** it with the default app.
+- **Open it with** another app, from a list with names and icons, like the
+  "Open With" menu in Finder and Explorer.
 
+| Platform | Supported |
+| -------- | --------- |
+| macOS 12+ | Yes |
+| Windows 10+ | Yes |
+| Linux, web, mobile | No, see [`isSupported`](#platform-support) |
+
+## Install
+
+The package is not on pub.dev, so depend on a tag of this repository:
+
+```yaml
+dependencies:
+  native_file_explorer_launcher:
+    git:
+      url: https://github.com/skalio/native-file-explorer-launcher
+      ref: v2.0.0
+```
 
 ## Usage
 
-To use this plugin, add `native_file_explorer_launcher` as a dependency in your pubspec.yaml file.
+```dart
+import 'package:native_file_explorer_launcher/native_file_explorer_launcher.dart';
+
+// Opens a Finder or Explorer window with the file selected.
+await NativeFileExplorerLauncher.showInFileExplorer('/Users/me/Downloads/report.pdf');
+
+// Opens the file with the default app.
+await NativeFileExplorerLauncher.openFile('/Users/me/Downloads/report.pdf');
+```
+
+Paths must be absolute. Folders work too.
+
+### Open with
+
+`getApplications` lists the apps that can open a kind of file. The default
+app comes first, the rest are sorted by name.
 
 ```dart
-// launches the native file explorer, i.e. `Finder`for macOS and `Explorer` for Windows and selects the file
-bool isSuccessful = await NativeFileExplorerLauncher.showFileInNativeFileExplorer(filePath)
+final apps = await NativeFileExplorerLauncher.getApplications(
+  'report.pdf',
+  iconSize: (24 * MediaQuery.devicePixelRatioOf(context)).ceil(),
+);
 
-// launches the file using the default application
-bool isSuccessful = await NativeFileExplorerLauncher.launchFile(filePath)
+for (final app in apps) {
+  print('${app.name}${app.isDefault ? ' (default)' : ''}');
+}
 
-// launches the file using the passed application handler
-bool isSuccessful = await NativeFileExplorerLauncher.launchFile(filePath, applicationHandler)
-
-// get a list of supported applications for the desired file, including the name, url and the icon data of every application. If no application is found, it returns an empty list
-List<AppHandler> =  await NativeFileExplorerLauncher.getSupportedApplications(String filePath)
+await NativeFileExplorerLauncher.openFile(path, application: apps.first);
 ```
+
+A few things worth knowing:
+
+- Only the extension matters, so a bare file name is enough and the file does
+  not need to exist yet. Names without an extension get an empty list.
+- Icons are square PNGs (`AppHandler.icon`), ready for `Image.memory`. Ask
+  for the size you draw them at, in physical pixels. Bigger icons cost more
+  time and memory for nothing.
+- The list reflects the apps installed right now. Cache it per extension if
+  you show it often, but expect it to go stale when apps come and go.
+
+### Errors
+
+Everything returns a `Future` that completes when the system accepted the
+request. When it did not, you get a `FileLauncherException` saying why:
+
+```dart
+try {
+  await NativeFileExplorerLauncher.openFile(path, application: app);
+} on FileLauncherException catch (e) {
+  final message = switch (e.error) {
+    FileLauncherError.fileNotFound => 'The file was moved or deleted.',
+    FileLauncherError.applicationNotFound => 'No app can open this file.',
+    FileLauncherError.failed => 'Could not open the file.', // see e.message
+  };
+  showError(message);
+}
+```
+
+A relative path or an `iconSize` below one throws an `ArgumentError`, since
+those are bugs rather than things that happen to users.
+
+### Platform support
+
+Every method throws an `UnsupportedError` on platforms other than macOS and
+Windows. Check first in code that runs everywhere:
+
+```dart
+if (NativeFileExplorerLauncher.isSupported) {
+  // Show the "Show in Finder" button.
+}
+```
+
+## Platform notes
+
+**macOS sandbox.** Sandboxed apps can show and open the files they have
+access to, such as their own container or a folder the user picked. The
+plugin needs no extra entitlements. If the sandbox does not let the plugin
+check whether a path exists, it leaves that to Finder instead of reporting
+the file as missing.
+
+**Windows default app.** Windows does not mark the default app in its list,
+so the plugin compares each app with the one registered for the file type,
+by path or by name. That covers the usual cases, but it is a best guess
+rather than an official flag.
+
+**Windows Store apps.** Their icons come from the app package. If a package
+does not provide one, `icon` is null and you show a fallback.
+
+## Development
+
+The Dart, Swift and C++ code that talks across the platform channel is
+generated by [Pigeon](https://pub.dev/packages/pigeon) from
+`pigeons/messages.dart`. After changing that file:
+
+```bash
+dart run pigeon --input pigeons/messages.dart && dart format lib
+```
+
+Tests come in three layers:
+
+```bash
+# Dart API, with the platform side faked
+flutter test
+
+# Native code against the real system (from example/, after a build)
+flutter build macos --debug
+xcodebuild test -workspace macos/Runner.xcworkspace -scheme Runner
+# or on Windows:
+flutter build windows --debug
+build\windows\x64\plugins\native_file_explorer_launcher\Debug\native_file_explorer_launcher_test.exe
+
+# Everything together, from example/
+flutter test integration_test -d macos
+```
+
+None of the tests open apps or file manager windows, so they are safe to run
+while you work. CI runs all of them on macOS and Windows for every pull
+request.
+
+## License
+
+MIT, see [LICENSE](LICENSE).
