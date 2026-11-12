@@ -24,4 +24,4 @@ flutter:
       macos:
         pluginClass: NativeFileExplorerLauncherPlugin
       windows:
-        pluginClass: NativeFileExplorerLauncherPlugin
+        pluginClass: NativeFileExplorerLauncherPluginCApi
