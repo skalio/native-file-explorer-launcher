@@ -1,3 +1,7 @@
+// std::any_cast needs exceptions, which Flutter's build settings turn off.
+// messages.g.cpp does the same.
+#undef _HAS_EXCEPTIONS
+
 #ifndef NOMINMAX
 #define NOMINMAX
 #endif
@@ -15,9 +19,9 @@ namespace test {
 
 namespace {
 
-// Pumps this thread's messages until |done| or a timeout.
-bool RunUntil(const bool& done) {
-  const ULONGLONG deadline = ::GetTickCount64() + 10000;
+// Pumps this thread's messages until |done| or |timeout_ms| passed.
+bool RunUntil(const bool& done, ULONGLONG timeout_ms = 10000) {
+  const ULONGLONG deadline = ::GetTickCount64() + timeout_ms;
   MSG message;
   while (!done && ::GetTickCount64() < deadline) {
     while (::PeekMessageW(&message, nullptr, 0, 0, PM_REMOVE)) {
@@ -70,8 +74,7 @@ TEST(Plugin, DropsRepliesAfterTheEngineIsGone) {
                            });
   }
   // The worker finishes after the plugin is gone; nothing may run.
-  ::Sleep(2000);
-  RunUntil(replied);
+  RunUntil(replied, 2000);
   EXPECT_FALSE(replied);
   ::CoUninitialize();
 }
