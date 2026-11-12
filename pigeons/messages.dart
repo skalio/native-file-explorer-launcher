@@ -1,5 +1,6 @@
 // The interface between the Dart API and the macOS and Windows code.
-// After editing, regenerate with: dart run pigeon --input pigeons/messages.dart
+// After editing, regenerate with:
+//   dart run pigeon --input pigeons/messages.dart && dart format lib
 import 'package:pigeon/pigeon.dart';
 
 @ConfigurePigeon(
