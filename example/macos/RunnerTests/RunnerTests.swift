@@ -19,6 +19,12 @@ struct LauncherTests {
     #expect(apps.filter(\.isDefault).count == 1)
   }
 
+  @Test func listsEachAppOnce() async throws {
+    let apps = try await launcher.getApplications(fileName: "notes.txt", iconSize: 16)
+    let bundleIds = apps.compactMap { Bundle(path: $0.id)?.bundleIdentifier }
+    #expect(bundleIds.count == Set(bundleIds).count)
+  }
+
   @Test func onlyUsesTheExtension() async throws {
     let byName = try await launcher.getApplications(fileName: "notes.TXT", iconSize: 16)
     let byPath = try await launcher.getApplications(fileName: "/does/not/exist.txt", iconSize: 16)
@@ -76,6 +82,43 @@ struct LauncherTests {
     #expect(throws: Never.self) { try existingFile(at: "/System/Applications/TextEdit.app") }
     #expect(throws: PigeonError.self) { try existingFile(at: "/does/not/exist") }
     #expect(throws: PigeonError.self) { try existingFile(at: "/etc/hosts/below-a-file") }
+  }
+}
+
+/// Fakes the app copies an updater leaves around, which CI Macs do not have.
+struct OneCopyPerAppTests {
+  let app = URL(fileURLWithPath: "/Applications/Edge.app")
+  let updaterCopy = URL(fileURLWithPath: "/Users/me/Library/EdgeUpdater/Edge.app")
+  let other = URL(fileURLWithPath: "/Applications/Other.app")
+  let noBundle = URL(fileURLWithPath: "/Applications/Script.app")
+
+  func bundleId(_ url: URL) -> String? {
+    switch url {
+    case app, updaterCopy: "com.example.edge"
+    case other: "com.example.other"
+    default: nil
+    }
+  }
+
+  @Test func keepsTheCopyMacOSWouldLaunch() {
+    let apps = oneCopyPerApp(
+      [updaterCopy, other, app], defaultPath: nil,
+      bundleId: bundleId, preferredCopy: { $0 == "com.example.edge" ? app : nil })
+    #expect(apps == [app, other])
+  }
+
+  @Test func prefersTheDefaultCopy() {
+    let apps = oneCopyPerApp(
+      [app, updaterCopy], defaultPath: updaterCopy.path,
+      bundleId: bundleId, preferredCopy: { _ in app })
+    #expect(apps == [updaterCopy])
+  }
+
+  @Test func keepsAppsWithoutBundleIdAndUnknownCopies() {
+    let apps = oneCopyPerApp(
+      [noBundle, updaterCopy, app], defaultPath: nil,
+      bundleId: bundleId, preferredCopy: { _ in nil })
+    #expect(apps == [noBundle, updaterCopy])
   }
 }
 

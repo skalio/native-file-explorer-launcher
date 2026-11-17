@@ -54,7 +54,8 @@ final class Launcher: LauncherApi {
     let defaultPath = workspace.urlForApplication(toOpen: type)?.standardizedFileURL.path
     let size = min(max(Int(clamping: iconSize), 1), Self.maxIconSize)
 
-    return workspace.urlsForApplications(toOpen: type).map { appURL in
+    let apps = oneCopyPerApp(workspace.urlsForApplications(toOpen: type), defaultPath: defaultPath)
+    return apps.map { appURL in
       let path = appURL.standardizedFileURL.path
       return PlatformApplication(
         id: path,
@@ -77,6 +78,35 @@ enum LauncherError {
 
   static func failed(_ message: String) -> PigeonError {
     PigeonError(code: "failed", message: message, details: nil)
+  }
+}
+
+/// Updaters keep extra copies of some apps around. Like Finder, lists each
+/// app once: the default copy if it is one, else the one macOS would launch.
+func oneCopyPerApp(
+  _ urls: [URL],
+  defaultPath: String?,
+  bundleId: (URL) -> String? = { Bundle(url: $0)?.bundleIdentifier },
+  preferredCopy: (String) -> URL? = { NSWorkspace.shared.urlForApplication(withBundleIdentifier: $0) }
+) -> [URL] {
+  var copiesByApp: [String: [URL]] = [:]
+  var order: [String] = []
+  for url in urls {
+    let key = bundleId(url) ?? url.standardizedFileURL.path
+    if copiesByApp[key] == nil {
+      order.append(key)
+    }
+    copiesByApp[key, default: []].append(url)
+  }
+  return order.map { key in
+    let copies = copiesByApp[key]!
+    guard copies.count > 1 else {
+      return copies[0]
+    }
+    let paths = copies.map(\.standardizedFileURL.path)
+    let preferred = [defaultPath, preferredCopy(key)?.standardizedFileURL.path]
+    let index = preferred.lazy.compactMap { $0.flatMap(paths.firstIndex(of:)) }.first
+    return copies[index ?? 0]
   }
 }
 
