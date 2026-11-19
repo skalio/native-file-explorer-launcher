@@ -1,156 +1,152 @@
-import 'dart:io';
-
-import 'package:flutter/material.dart';
+import 'package:file_selector/file_selector.dart';
+import 'package:flutter/foundation.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:native_file_explorer_launcher/native_file_explorer_launcher.dart';
 
-void main() {
-  runApp(MaterialApp(home: MyApp()));
-}
+void main() => runApp(const ExampleApp());
 
-class MyApp extends StatefulWidget {
-  @override
-  _MyAppState createState() => _MyAppState();
-}
-
-final GlobalKey<FormState> _filePathFormKey = GlobalKey();
-
-class _MyAppState extends State<MyApp> {
-  final TextEditingController _filePathController = new TextEditingController();
-
-  final GlobalKey _openWithButtonKey = GlobalKey();
+class ExampleApp extends StatelessWidget {
+  const ExampleApp({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Native File Explorer'),
+    return MaterialApp(
+      title: 'native_file_explorer_launcher',
+      theme: ThemeData(colorSchemeSeed: Colors.teal),
+      darkTheme: ThemeData(
+        colorSchemeSeed: Colors.teal,
+        brightness: Brightness.dark,
       ),
-      body: Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Text(
-              "Enter a local file path",
-              textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 18),
-            ),
-            Container(
-              width: 250,
-              padding: EdgeInsets.fromLTRB(0, 50, 0, 50),
-              child: Form(
-                key: _filePathFormKey,
-                child: TextFormField(
-                  keyboardType: TextInputType.text,
-                  controller: _filePathController,
-                  onFieldSubmitted: (_) => FocusScope.of(context).unfocus(),
-                  decoration: InputDecoration(
-                    labelText: "File path ",
-                    helperText: "",
+      home: const LauncherPage(),
+    );
+  }
+}
+
+class LauncherPage extends StatefulWidget {
+  const LauncherPage({super.key});
+
+  @override
+  State<LauncherPage> createState() => _LauncherPageState();
+}
+
+class _LauncherPageState extends State<LauncherPage> {
+  static const _iconSize = 32.0;
+
+  String? _path;
+  List<AppHandler> _apps = [];
+
+  String get _fileExplorer =>
+      defaultTargetPlatform == TargetPlatform.macOS ? 'Finder' : 'Explorer';
+
+  Future<void> _pickFile() async {
+    final file = await openFile();
+    if (file == null || !mounted) return;
+
+    final pixels = (_iconSize * MediaQuery.devicePixelRatioOf(context)).ceil();
+    final apps = await _run(
+      () => NativeFileExplorerLauncher.getApplications(
+        file.path,
+        iconSize: pixels,
+      ),
+    );
+    setState(() {
+      _path = file.path;
+      _apps = apps ?? [];
+    });
+  }
+
+  /// Runs [action] and shows what went wrong, if anything.
+  Future<T?> _run<T>(Future<T> Function() action) async {
+    try {
+      return await action();
+    } on FileLauncherException catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('${e.error.name}: ${e.message}')),
+        );
+      }
+      return null;
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final path = _path;
+
+    return Scaffold(
+      appBar: AppBar(title: const Text('native_file_explorer_launcher')),
+      body: ListView(
+        padding: const EdgeInsets.all(24),
+        children: [
+          FilledButton.icon(
+            onPressed: _pickFile,
+            icon: const Icon(Icons.file_open),
+            label: const Text('Pick a file'),
+          ),
+          if (path != null) ...[
+            const SizedBox(height: 16),
+            SelectableText(path),
+            const SizedBox(height: 16),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                OutlinedButton(
+                  onPressed: () => _run(
+                    () => NativeFileExplorerLauncher.showInFileExplorer(path),
                   ),
-                  validator: (input) {
-                    if (input?.isEmpty ?? true) {
-                      return "Please enter a file's path";
-                    }
-                    return null;
-                  },
+                  child: Text('Show in $_fileExplorer'),
+                ),
+                OutlinedButton(
+                  onPressed: () =>
+                      _run(() => NativeFileExplorerLauncher.openFile(path)),
+                  child: const Text('Open'),
+                ),
+              ],
+            ),
+            const SizedBox(height: 24),
+            Text('Open with', style: Theme.of(context).textTheme.titleMedium),
+            if (_apps.isEmpty) const Text('No app can open this file.'),
+            for (final app in _apps)
+              _AppTile(
+                app: app,
+                iconSize: _iconSize,
+                onTap: () => _run(
+                  () => NativeFileExplorerLauncher.openFile(
+                    path,
+                    application: app,
+                  ),
                 ),
               ),
-            ),
-            Container(
-              child: Center(
-                child: Wrap(
-                  direction: Axis.horizontal,
-                  alignment: WrapAlignment.center,
-                  runAlignment: WrapAlignment.center,
-                  runSpacing: 10,
-                  children: [
-                    ElevatedButton(
-                      child: Text(
-                        Platform.isMacOS
-                            ? "Show file in Finder"
-                            : "Show file in File Explorer",
-                      ),
-                      onPressed: () async {
-                        if (_filePathFormKey.currentState!.validate()) {
-                          if (!await NativeFileExplorerLauncher
-                              .showFileInNativeFileExplorer(
-                                  _filePathController.text)) {
-                            throw 'Could not open ${_filePathController.text}';
-                          }
-                        }
-                      },
-                    ),
-                    SizedBox(
-                      width: 25,
-                    ),
-                    ElevatedButton(
-                      child: Text(
-                        "Launch file",
-                      ),
-                      onPressed: () async {
-                        if (_filePathFormKey.currentState!.validate()) {
-                          if (!await NativeFileExplorerLauncher.launchFile(
-                              filePath: _filePathController.text)) {
-                            throw 'Could not launch ${_filePathController.text}';
-                          }
-                        }
-                      },
-                    ),
-                    SizedBox(
-                      width: 25,
-                    ),
-                    ElevatedButton(
-                        key: _openWithButtonKey,
-                        onPressed: () async {
-                          if (_filePathFormKey.currentState!.validate()) {
-                            _showPopupMenu();
-                          }
-                        },
-                        child: Text("Launch file with"))
-                  ],
-                ),
-              ),
-            ),
           ],
-        ),
+        ],
       ),
     );
   }
+}
 
-  void _showPopupMenu() async {
-    final screenSize = MediaQuery.of(context).size;
-    RenderBox box =
-        _openWithButtonKey.currentContext!.findRenderObject() as RenderBox;
-    Offset position = box.localToGlobal(Offset.zero);
-    double left = position.dx;
-    double top = position.dy;
-    double right = screenSize.width - position.dx - box.size.width;
-    double bottom = screenSize.height - position.dy;
+class _AppTile extends StatelessWidget {
+  const _AppTile({
+    required this.app,
+    required this.iconSize,
+    required this.onTap,
+  });
 
-    final apps = await NativeFileExplorerLauncher.getSupportedApplications(
-        _filePathController.text);
-    if (apps != null && apps.isNotEmpty) {
-      final items = apps
-          .map((e) => PopupMenuItem<AppHandler>(
-              onTap: () => NativeFileExplorerLauncher.launchFile(
-                  filePath: _filePathController.text, applicationHandler: e),
-              child: Row(children: [
-                e.icon != null
-                    ? Image.memory(e.icon!, width: 30, height: 30)
-                    : SizedBox(),
-                SizedBox(width: 10),
-                Text(e.name)
-              ]),
-              value: e))
-          .toList();
+  final AppHandler app;
+  final double iconSize;
+  final VoidCallback onTap;
 
-      await showMenu(
-          context: context,
-          position: RelativeRect.fromLTRB(left, top, right, bottom),
-          items: items);
-    } else {
-      throw 'No application found which can launch ${_filePathController.text}';
-    }
+  @override
+  Widget build(BuildContext context) {
+    final icon = app.icon;
+
+    return ListTile(
+      leading: icon != null
+          ? Image.memory(icon, width: iconSize, height: iconSize)
+          : Icon(Icons.apps, size: iconSize),
+      title: Text(app.name),
+      subtitle: app.isDefault ? const Text('Default') : null,
+      onTap: onTap,
+    );
   }
 }

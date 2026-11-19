@@ -11,4 +11,4 @@ PRODUCT_NAME = native_file_explorer_launcher_example
 PRODUCT_BUNDLE_IDENTIFIER = com.skalio.nativeFileExplorerLauncherExample
 
 // The copyright displayed in application information
-PRODUCT_COPYRIGHT = Copyright © 2020 com.skalio. All rights reserved.
+PRODUCT_COPYRIGHT = Copyright © 2026 com.skalio. All rights reserved.

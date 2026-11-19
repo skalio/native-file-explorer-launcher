@@ -31,7 +31,8 @@ desktop.ini
 .pub/
 .flutter-plugins-dependencies
 /build/
-pubspec.lock
+/coverage/
+/pubspec.lock
 
 # Swift Package Manager related
 .build/
