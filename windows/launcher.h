@@ -38,6 +38,9 @@ std::vector<Application> GetApplications(const std::wstring& file_name,
 // existing, so the shell gets to decide.
 bool IsMissing(const std::wstring& path);
 
+// |value| with its %VARIABLES% replaced, however long it gets.
+std::optional<std::wstring> ExpandEnvironment(const std::wstring& value);
+
 std::wstring Utf16FromUtf8(std::string_view utf8);
 std::string Utf8FromUtf16(std::wstring_view utf16);
 

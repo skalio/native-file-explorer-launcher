@@ -54,6 +54,9 @@ std::wstring TakeString(wchar_t* value) {
   return result;
 }
 
+// The longest path Windows accepts, including its terminating null.
+constexpr size_t kMaxLongPath = 32767;
+
 // Explorer's parsing rejects forward slashes.
 std::wstring WithBackslashes(std::wstring path) {
   std::replace(path.begin(), path.end(), L'/', L'\\');
@@ -159,26 +162,28 @@ std::optional<std::vector<uint8_t>> IconPng(IWICImagingFactory* factory,
   }
 
   if (location[0] == L'@') {
-    wchar_t path[MAX_PATH] = {};
+    // Package paths can be longer than MAX_PATH.
+    std::wstring path(kMaxLongPath, L'\0');
     ComPtr<IWICBitmapDecoder> decoder;
     ComPtr<IWICBitmapFrameDecode> image;
-    if (FAILED(::SHLoadIndirectString(location.c_str(), path, MAX_PATH,
+    if (FAILED(::SHLoadIndirectString(location.c_str(), path.data(),
+                                      static_cast<UINT>(path.size()),
                                       nullptr)) ||
         FAILED(factory->CreateDecoderFromFilename(
-            path, nullptr, GENERIC_READ, WICDecodeMetadataCacheOnDemand,
-            &decoder)) ||
+            path.c_str(), nullptr, GENERIC_READ,
+            WICDecodeMetadataCacheOnDemand, &decoder)) ||
         FAILED(decoder->GetFrame(0, &image))) {
       return std::nullopt;
     }
     return EncodePng(factory, image.Get(), size);
   }
 
-  wchar_t expanded[MAX_PATH] = {};
-  if (::ExpandEnvironmentStringsW(location.c_str(), expanded, MAX_PATH) == 0) {
+  const std::optional<std::wstring> expanded = ExpandEnvironment(location);
+  if (!expanded) {
     return std::nullopt;
   }
   HICON icon = nullptr;
-  if (::SHDefExtractIconW(expanded, index, 0, &icon, nullptr,
+  if (::SHDefExtractIconW(expanded->c_str(), index, 0, &icon, nullptr,
                           static_cast<UINT>(size)) != S_OK ||
       !icon) {
     return std::nullopt;
@@ -218,6 +223,21 @@ std::string Utf8FromUtf16(std::wstring_view utf16) {
                         static_cast<int>(utf16.size()), utf8.data(), length,
                         nullptr, nullptr);
   return utf8;
+}
+
+std::optional<std::wstring> ExpandEnvironment(const std::wstring& value) {
+  const DWORD size = ::ExpandEnvironmentStringsW(value.c_str(), nullptr, 0);
+  if (size == 0) {
+    return std::nullopt;
+  }
+  std::wstring expanded(size, L'\0');
+  const DWORD written =
+      ::ExpandEnvironmentStringsW(value.c_str(), expanded.data(), size);
+  if (written == 0 || written > size) {
+    return std::nullopt;
+  }
+  expanded.resize(written - 1);
+  return expanded;
 }
 
 bool IsMissing(const std::wstring& path) {

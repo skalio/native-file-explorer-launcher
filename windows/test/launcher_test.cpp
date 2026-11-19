@@ -78,6 +78,17 @@ TEST(Utf, RoundTripsNonAsciiText) {
   EXPECT_EQ(Utf8FromUtf16(L""), "");
 }
 
+TEST(Environment, ExpandsPathsLongerThanMaxPath) {
+  const std::wstring tail(2 * MAX_PATH, L'a');
+  const std::optional<std::wstring> expanded =
+      ExpandEnvironment(L"%SystemRoot%\\" + tail);
+  ASSERT_TRUE(expanded.has_value());
+  EXPECT_GT(expanded->size(), tail.size());
+  EXPECT_EQ(expanded->find(L'%'), std::wstring::npos);
+  EXPECT_EQ(expanded->substr(expanded->size() - tail.size()), tail);
+  EXPECT_EQ(ExpandEnvironment(L""), std::wstring());
+}
+
 TEST_F(LauncherTest, IsMissingOnlyForMissingPaths) {
   EXPECT_FALSE(IsMissing(directory_.wstring()));
   EXPECT_FALSE(IsMissing(MakeFile(L"a, b \u00e4.txt")));
