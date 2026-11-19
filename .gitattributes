@@ -1,0 +1,2 @@
+# Flutter writes CRLF on Windows; keep the repository LF everywhere.
+* text=auto

@@ -6,9 +6,12 @@
 
 #include "generated_plugin_registrant.h"
 
-#include <native_file_explorer_launcher/native_file_explorer_launcher_plugin.h>
+#include <file_selector_windows/file_selector_windows.h>
+#include <native_file_explorer_launcher/native_file_explorer_launcher_plugin_c_api.h>
 
 void RegisterPlugins(flutter::PluginRegistry* registry) {
-  NativeFileExplorerLauncherPluginRegisterWithRegistrar(
-      registry->GetRegistrarForPlugin("NativeFileExplorerLauncherPlugin"));
+  FileSelectorWindowsRegisterWithRegistrar(
+      registry->GetRegistrarForPlugin("FileSelectorWindows"));
+  NativeFileExplorerLauncherPluginCApiRegisterWithRegistrar(
+      registry->GetRegistrarForPlugin("NativeFileExplorerLauncherPluginCApi"));
 }
