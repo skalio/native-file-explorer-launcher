@@ -71,15 +71,20 @@ abstract final class NativeFileExplorerLauncher {
     }
 
     final apps = await _call(() => _api.getApplications(fileName, iconSize));
-    final handlers = {
-      for (final app in apps)
-        app.id: AppHandler(
+    // Windows can list an app twice and flags only one copy as default.
+    final copies = <String, PlatformApplication>{};
+    for (final app in apps) {
+      if (app.isDefault || !copies.containsKey(app.id)) copies[app.id] = app;
+    }
+    final handlers = [
+      for (final app in copies.values)
+        AppHandler(
           id: app.id,
           name: app.name,
           icon: app.icon,
           isDefault: app.isDefault,
         ),
-    }.values.toList();
+    ];
     return handlers..sort(_defaultFirstThenByName);
   }
 

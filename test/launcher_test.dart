@@ -158,10 +158,32 @@ void main() {
       expect(apps.first.isDefault, isTrue);
     });
 
-    test('drops duplicate ids', () async {
+    test('drops duplicate ids and keeps the first copy', () async {
       api.applications = [_app('a', 'One'), _app('a', 'One again')];
       final apps = await NativeFileExplorerLauncher.getApplications('a.pdf');
-      expect(apps, hasLength(1));
+      expect(apps.single.name, 'One');
+    });
+
+    test('keeps the default copy of a duplicate app', () async {
+      api.applications = [
+        _app('b', 'B'),
+        _app('z', 'Z'),
+        _app('z', 'Z default', isDefault: true),
+      ];
+      final apps = await NativeFileExplorerLauncher.getApplications('a.pdf');
+      expect(apps.map((app) => app.name), ['Z default', 'B']);
+      expect(apps.first.isDefault, isTrue);
+    });
+
+    test('keeps the default copy when it comes first', () async {
+      api.applications = [
+        _app('z', 'Z default', isDefault: true),
+        _app('z', 'Z'),
+        _app('b', 'B'),
+      ];
+      final apps = await NativeFileExplorerLauncher.getApplications('a.pdf');
+      expect(apps.map((app) => app.name), ['Z default', 'B']);
+      expect(apps.first.isDefault, isTrue);
     });
 
     test('passes the icon size and keeps the icon', () async {
