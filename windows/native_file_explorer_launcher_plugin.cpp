@@ -53,6 +53,11 @@ class PlatformThread {
   void Close() {
     std::lock_guard<std::mutex> lock(mutex_);
     if (window_) {
+      // Windows drops queued messages with the window; free their tasks.
+      MSG message;
+      while (::PeekMessageW(&message, window_, kRunTask, kRunTask, PM_REMOVE)) {
+        delete reinterpret_cast<std::function<void()>*>(message.lParam);
+      }
       ::DestroyWindow(window_);
       window_ = nullptr;
     }

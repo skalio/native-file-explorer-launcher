@@ -9,6 +9,7 @@
 
 #include <gtest/gtest.h>
 
+#include <memory>
 #include <optional>
 
 #include "messages.g.h"
@@ -75,6 +76,31 @@ TEST(Plugin, DropsRepliesAfterTheEngineIsGone) {
   }
   // The worker finishes after the plugin is gone; nothing may run.
   RunUntil(replied, 2000);
+  EXPECT_FALSE(replied);
+  ::CoUninitialize();
+}
+
+TEST(Plugin, FreesQueuedRepliesWhenTheEngineIsGone) {
+  ASSERT_TRUE(SUCCEEDED(::CoInitializeEx(nullptr, COINIT_APARTMENTTHREADED)));
+  bool replied = false;
+  auto alive = std::make_shared<int>(0);
+  std::weak_ptr<int> reply_state = alive;
+  {
+    NativeFileExplorerLauncherPlugin plugin;
+    plugin.GetApplications(
+        "notes.txt", 16,
+        [&replied, alive = std::move(alive)](ErrorOr<flutter::EncodableList>) {
+          replied = true;
+        });
+    // Gives the worker time to queue its reply without running it.
+    ::Sleep(1000);
+  }
+  bool freed = false;
+  const ULONGLONG deadline = ::GetTickCount64() + 2000;
+  while (!(freed = reply_state.expired()) && ::GetTickCount64() < deadline) {
+    ::Sleep(5);
+  }
+  EXPECT_TRUE(freed);
   EXPECT_FALSE(replied);
   ::CoUninitialize();
 }
