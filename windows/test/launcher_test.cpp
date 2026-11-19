@@ -101,9 +101,13 @@ TEST_F(LauncherTest, OnlyUsesTheExtension) {
   const std::vector<Application> by_name = GetApplications(L"notes.TXT", 16);
   const std::vector<Application> by_path =
       GetApplications(L"C:\\does\\not\\exist.txt", 16);
+  const std::vector<Application> by_slashes =
+      GetApplications(L"C:/folder.v2/exist.txt", 16);
   ASSERT_EQ(by_name.size(), by_path.size());
+  ASSERT_EQ(by_name.size(), by_slashes.size());
   for (size_t i = 0; i < by_name.size(); i++) {
     EXPECT_EQ(by_name[i].id, by_path[i].id);
+    EXPECT_EQ(by_name[i].id, by_slashes[i].id);
   }
 }
 
@@ -123,6 +127,7 @@ TEST_F(LauncherTest, ReturnsNoAppsWithoutExtension) {
   EXPECT_TRUE(GetApplications(L"Makefile", 16).empty());
   EXPECT_TRUE(GetApplications(L"", 16).empty());
   EXPECT_TRUE(GetApplications(L"ends-with-dot.", 16).empty());
+  EXPECT_TRUE(GetApplications(L"C:/tools.v2/readme", 16).empty());
 }
 
 TEST_F(LauncherTest, ShowInFileExplorerReportsMissingFiles) {

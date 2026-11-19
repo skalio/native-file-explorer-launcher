@@ -62,7 +62,8 @@ std::wstring WithBackslashes(std::wstring path) {
 
 // The extension including its dot, or empty when there is none.
 std::wstring ExtensionOf(const std::wstring& file_name) {
-  const wchar_t* extension = ::PathFindExtensionW(file_name.c_str());
+  const std::wstring native_name = WithBackslashes(file_name);
+  const wchar_t* extension = ::PathFindExtensionW(native_name.c_str());
   if (!extension || extension[0] == L'\0' || extension[1] == L'\0') {
     return L"";
   }
